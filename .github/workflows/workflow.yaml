@@ -49,9 +49,9 @@ jobs:
           password: ${{ secrets['DOCKER_PWD'] }}
       - name: Build and push multiarch docker images
         env: 
-          TAG_VERSION: 1.${{ env.JFROG_CLI_BUILD_NUMBER }}.0
+          TAG_VERSION: ${{ env.JFROG_CLI_BUILD_NUMBER }}
           JFROG_CLI_BUILD_PROJECT: ${{ github.event.inputs.project-key }}
-          RT_REPO_PREFIX: ${{ secrets['JF_HOST'] }}/${{ github.event.inputs.docker-repo }}/
+          RT_REPO_PREFIX: ${{ secrets['JF_HOST'] }}/${{ github.event.inputs.docker-repo }}
         uses: docker/build-push-action@v3
         id: docker_build_1
         with:
