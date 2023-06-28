@@ -1,0 +1,1 @@
+Folder containing picture taken on demand by a remote JFrog connect command
