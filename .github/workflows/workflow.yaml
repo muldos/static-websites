@@ -19,6 +19,11 @@ on:
         type: string
         description: "The name of the target docker repository"
         default: "dro-iot-docker-local"
+      update-flow-id:
+          required: true
+          type: string
+          default: "f-043c-f38b"
+          description: "The Jfrog connect update flow id"          
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -62,3 +67,32 @@ jobs:
           outputs: |
             type=image
           tags: ${{ env.RT_REPO_PREFIX }}/iot-demo/website:${{ env.TAG_VERSION }}
+      - name: Deploy on Devices
+        env: 
+          TAG_VERSION: ${{ env.JFROG_CLI_BUILD_NUMBER }}
+        uses: fjogeleit/http-request-action@v1
+        id: otaDeployRequest
+        with:
+            url: 'https://api.connect.jfrog.io/v2/deploy_update'
+            method: 'POST'
+            customHeaders: '{"Content-Type": "application/json"}'
+            data: |
+              '{
+                "user_token": "${{ secrets['CONNECT_TOKEN'] }}",
+                "device_filter": {
+                  "project": { "name": "DemoTest" },
+                  "groups": [{ "name": "emea-fleet" }],
+                  "filters": []
+                },
+                "deployment_configuration": {
+                  "flow_id": "f-043c-f38b",
+                  "comment": "deployment initiated by CI build #${{ env.TAG_VERSION }}",
+                  "app": { "name": "DroAppDemo", "version": "${{ env.TAG_VERSION }}" },
+                  "parameters_mapping": {
+                    "tagVersion": "${{ env.TAG_VERSION }}"
+                  }
+                }
+              }'
+      - name: Show Request OTA status
+        run: |
+          echo ${{ steps.otaDeployRequest.outputs.response }}
