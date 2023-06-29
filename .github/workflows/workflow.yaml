@@ -46,6 +46,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
         # We build & test the JAR file, scan it and if scan result ok, we publish it to our artifactory maven repository
+      - name: 
+        run: |
+          # Collect environment variables for the build
+          jf rt bce ${{ env.JFROG_CLI_BUILD_NAME }}-jar ${{ env.JFROG_CLI_BUILD_NUMBER }} 
+          # collect vcs info
+          jf rt bag ${{ env.JFROG_CLI_BUILD_NAME }}-jar ${{ env.JFROG_CLI_BUILD_NUMBER }}
       - name: Login to Artifactory Container Registry
         uses: docker/login-action@v2
         with:
@@ -58,7 +64,7 @@ jobs:
           JFROG_CLI_BUILD_PROJECT: ${{ github.event.inputs.project-key }}
           RT_REPO_PREFIX: ${{ secrets['JF_HOST'] }}/${{ github.event.inputs.docker-repo }}
         uses: docker/build-push-action@v3
-        id: docker_build_1
+        id: docker_build
         with:
           context: ${{ github.event.inputs.app-choice }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
@@ -67,6 +73,18 @@ jobs:
           outputs: |
             type=image
           tags: ${{ env.RT_REPO_PREFIX }}/iot-demo/website:${{ env.TAG_VERSION }}
+      - name:
+        env: 
+          TAG_VERSION: ${{ env.JFROG_CLI_BUILD_NUMBER }}
+          JFROG_CLI_BUILD_PROJECT: ${{ github.event.inputs.project-key }}
+          RT_REPO_PREFIX: ${{ secrets['JF_HOST'] }}/${{ github.event.inputs.docker-repo }}
+        run: |
+          echo ${{ env.RT_REPO_PREFIX }}/iot-demo/website:${{ env.TAG_VERSION }}@${{ steps.docker_build.outputs.ImageID }} > ./image-file-details.txt
+          # As the docker images have been built by buildx, we don't have them locally, 
+          # so we link the build info to the already published images in previous steps
+          jf rt bdc ${{ github.event.inputs.docker-repo }} --image-file ./image-file-details.txt --build-name ${{ env.JFROG_CLI_BUILD_NAME }} --build-number ${{ env.JFROG_CLI_BUILD_NUMBER }}
+          # Publish build info
+          jf rt bp ${{ env.JFROG_CLI_BUILD_NAME }} ${{ env.JFROG_CLI_BUILD_NUMBER }}          
       - name: Deploy on Devices
         env: 
           TAG_VERSION: ${{ env.JFROG_CLI_BUILD_NUMBER }}
@@ -86,7 +104,7 @@ jobs:
                   "filters": []
                 },
                 "deployment_configuration": {
-                  "flow_id": "f-043c-f38b",
+                  "flow_id": "${{ github.event.inputs.update-flow-id }}",
                   "comment": "deployment initiated by CI build #${{ env.TAG_VERSION }}",
                   "app": { "name": "DroAppDemo", "version": "${{ env.TAG_VERSION }}" },
                   "parameters_mapping": {
