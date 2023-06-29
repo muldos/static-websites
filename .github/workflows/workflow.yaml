@@ -75,24 +75,9 @@ jobs:
         with:
             url: 'https://api.connect.jfrog.io/v2/deploy_update'
             method: 'POST'
+            escapeData: 'true'
             customHeaders: '{"Content-Type": "application/json"}'
-            data: |
-              '{
-                "user_token": "${{ secrets['CONNECT_TOKEN'] }}",
-                "device_filter": {
-                  "project": { "name": "DemoTest" },
-                  "groups": [{ "name": "emea-fleet" }],
-                  "filters": []
-                },
-                "deployment_configuration": {
-                  "flow_id": "f-043c-f38b",
-                  "comment": "deployment initiated by CI build #${{ env.TAG_VERSION }}",
-                  "app": { "name": "DroAppDemo", "version": "${{ env.TAG_VERSION }}" },
-                  "parameters_mapping": {
-                    "tagVersion": "${{ env.TAG_VERSION }}"
-                  }
-                }
-              }'
+            data:'{"user_token": "${{ secrets['CONNECT_TOKEN'] }}","device_filter": {"project": { "name": "DemoTest" },"groups": [{ "name": "emea-fleet" }],"filters": []},"deployment_configuration": {"flow_id": "f-043c-f38b","comment": "deployment initiated by CI build #${{ env.TAG_VERSION }}","app": { "name": "DroAppDemo", "version": "${{ env.TAG_VERSION }}" },"parameters_mapping": {"tagVersion": "${{ env.TAG_VERSION }}"}}}'
       - name: Show Request OTA status
         run: |
           echo ${{ steps.otaDeployRequest.outputs.response }}
